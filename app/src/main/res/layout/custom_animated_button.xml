@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/animatedButton"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:background="@drawable/button_shape"
+    android:layout_margin="16dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- Fondo circular animado -->
+    <View
+        android:id="@+id/circle"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_centerInParent="true"
+        android:background="@drawable/circle_shape"
+        android:alpha="0" />
+
+    <!-- Flecha izquierda -->
+    <ImageView
+        android:id="@+id/arrowLeft"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_arrow_right"
+        android:layout_alignParentStart="true"
+        android:layout_centerVertical="true"
+        android:translationX="-60dp" />
+
+    <!-- Texto -->
+    <TextView
+        android:id="@+id/btnText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Iniciar Evaluación"
+        android:textColor="#1f387e"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_centerInParent="true" />
+
+    <!-- Flecha derecha -->
+    <ImageView
+        android:id="@+id/arrowRight"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_arrow_right"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:translationX="0dp" />
+</RelativeLayout>

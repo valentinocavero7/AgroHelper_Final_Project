@@ -8,7 +8,11 @@
     <fragment
         android:id="@+id/inicio"
         android:name="com.example.prueba_01.fragments.InicioFragment"
-        tools:layout="@layout/fragment_inicio" />
+        tools:layout="@layout/fragment_inicio" >
+        <action
+            android:id="@+id/action_inicio_to_evaluacion"
+            app:destination="@id/evaluacion" />
+    </fragment>
 
     <fragment
         android:id="@+id/navigation_home"

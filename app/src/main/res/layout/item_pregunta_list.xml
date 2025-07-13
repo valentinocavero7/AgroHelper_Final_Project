@@ -17,7 +17,7 @@
         android:padding="16dp"
         android:button="@null"
         android:text="Texto de opción"
-        android:textColor="@color/white"
+        android:textColor="@color/text_dark_green"
         android:textSize="16sp"/>
 
 </LinearLayout>
