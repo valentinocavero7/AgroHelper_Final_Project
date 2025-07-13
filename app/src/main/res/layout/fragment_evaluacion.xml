@@ -1,44 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".fragments.EvaluacionFragment"
-    android:background="@color/back"
-    android:fitsSystemWindows="true"
+    android:background="@color/bg_light_green"
     android:clipToPadding="false"
+    android:fitsSystemWindows="true"
     android:paddingBottom="80dp"
-    >
+    android:paddingTop="10dp"
+    tools:context=".fragments.EvaluacionFragment">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingVertical="10dp"
-        android:paddingHorizontal="30dp"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingHorizontal="25dp"
+        android:paddingVertical="20dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
                 android:text="Evaluación de Plantas"
-                android:textColor="@color/white"
-                android:textStyle="bold"
-                android:textSize="30dp"/>
+                android:textColor="@color/text_dark_green"
+                android:textSize="26dp"
+                android:textStyle="bold" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                >
+                android:orientation="horizontal">
+
                 <TextView
                     android:id="@+id/cnt_preguntas"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="18dp"
-                    android:text="Pregunta 1 de 12"/>
+                    android:layout_marginBottom="16dp"
+                    android:text="Pregunta 1 de 12"
+                    android:textColor="@color/text_soft_green"
+                    android:textSize="16sp" />
 
             </LinearLayout>
         </LinearLayout>
@@ -47,60 +53,62 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:paddingVertical="20dp"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingVertical="20dp">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
+
                 <TextView
                     android:id="@+id/pregunta"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="18dp"
-                    android:text="¿Blas ya estás usando github?"/>
+                    android:text="¿Blas ya estás usando github?"
+                    android:textColor="@color/text_dark_green"
+                    android:textSize="18dp" />
             </LinearLayout>
 
             <LinearLayout
-                android:layout_marginTop="10dp"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:layout_marginTop="10dp"
                 android:orientation="vertical">
 
                 <RadioGroup
                     android:id="@+id/radio_group"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
-                    <RadioButton
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginVertical="10dp"
-                        android:textColor="@color/white"
-                        android:button="@null"
-                        android:text="Sí"
-                        android:paddingHorizontal="15dp"
-                        android:background="@drawable/btn_preview_shape">
-                    </RadioButton>
 
                     <RadioButton
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginVertical="10dp"
-                        android:textColor="@color/white"
+                        android:background="@drawable/btn_preview_shape"
                         android:button="@null"
-                        android:text="No"
                         android:paddingHorizontal="15dp"
-                        android:background="@drawable/btn_preview_shape">
-                    </RadioButton>
+                        android:text="Sí"
+                        android:textColor="@color/text_soft_green"></RadioButton>
+
+                    <RadioButton
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginVertical="10dp"
+                        android:background="@drawable/btn_preview_shape"
+                        android:button="@null"
+                        android:paddingHorizontal="15dp"
+                        android:text="No"
+                        android:textColor="@color/text_soft_green"></RadioButton>
                 </RadioGroup>
 
                 <ListView
                     android:id="@+id/lv_respuestas"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp"
                     android:divider="@null"
-                    android:dividerHeight="0dp"/>
+                    android:dividerHeight="0dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp" />
             </LinearLayout>
 
 
@@ -117,32 +125,37 @@
                 android:layout_marginEnd="5dp"
                 android:layout_weight="1"
                 android:background="@drawable/btn_preview_shape"
-                android:textStyle="bold"
-                android:textSize="15dp"
                 android:text="Anterior"
-                android:textAllCaps="false" />
+                android:textAllCaps="false"
+                android:textColor="@color/text_soft_green"
+                android:textSize="15dp"
+                android:textStyle="bold" />
 
             <LinearLayout
                 android:id="@+id/btn_next"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="match_parent"
-                android:gravity="center"
+                android:layout_weight="1"
                 android:background="@drawable/btn_next_shape"
                 android:clickable="true"
-                android:focusable="true">
+                android:focusable="true"
+                android:gravity="center">
+
                 <TextView
                     android:id="@+id/text_btn_next"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="5dp"
-                    android:textSize="15dp"
-                    android:textStyle="bold"
-                    android:text="Siguiente"/>
+                    android:layout_marginEnd="6dp"
+                    android:text="Siguiente"
+                    android:textColor="@color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
                 <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:src="@drawable/ic_next"/>
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_next"
+                    app:tint="@color/white" />
             </LinearLayout>
         </LinearLayout>
 
