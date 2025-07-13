@@ -7,6 +7,7 @@ public class Opcion {
     public Opcion(String descripcion) {
         Descripcion = descripcion;
         Seleccionada = false;
+        // hola
     }
 
     public String getDescripcion() {
