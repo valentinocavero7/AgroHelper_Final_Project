@@ -7,6 +7,7 @@ import android.os.Bundle;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,13 +17,25 @@ import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import com.example.prueba_01.Adapter.AdapterOpciones;
+import com.example.prueba_01.dialogs.WaitingAnswerDialog;
+import com.example.prueba_01.dialogs.WaitingDialog;
 import com.example.prueba_01.modelo.Opcion;
 import com.example.prueba_01.modelo.Pregunta;
 import com.example.prueba_01.R;
 import com.example.prueba_01.databinding.FragmentEvaluacionBinding;
 
+import com.google.ai.client.generativeai.GenerativeModel;
+import com.google.ai.client.generativeai.java.GenerativeModelFutures;
+import com.google.ai.client.generativeai.type.Content;
+import com.google.ai.client.generativeai.type.GenerateContentResponse;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+
 
 public class EvaluacionFragment extends Fragment implements View.OnClickListener {
 
@@ -31,6 +44,11 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
     private int numberPregunta = 0;
     private RadioGroup opcionesGroup;
     private int opcionSelected = -1;
+    private WaitingDialog dialog;
+    private WaitingAnswerDialog dialog2;
+
+    private GenerativeModelFutures model;
+    private final Executor executor = Executors.newSingleThreadExecutor();
 
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
@@ -59,6 +77,14 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
+        String apiKey = "AIzaSyBn1YGNly3F8X_Jz_YYTm_pTY-kmq-6S68";
+        GenerativeModel gm = new GenerativeModel(
+                /* modelName */ "gemini-2.5-flash-lite-preview-06-17",
+                /* apiKey */ apiKey
+        );
+        model = GenerativeModelFutures.from(gm);
+        dialog = new WaitingDialog();
+        dialog2 = new WaitingAnswerDialog();
     }
 
     @Override
@@ -87,6 +113,9 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
                 }
             } else {
                 Toast.makeText(getContext(), "Evaluacion terminada", Toast.LENGTH_SHORT).show();
+                //dialog.show(getParentFragmentManager(), "");
+                dialog2.show(getParentFragmentManager(), "");
+                sendAnswersToGemini();
             }
         });
 
@@ -286,4 +315,91 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
     public void onClick(View view) {
 
     }
+
+    private String collectAnswersForGemini() {
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append("Evalúa el estado de una planta basándote en las siguientes respuestas de un formulario. Identifica posibles problemas (plagas, enfermedades, problemas de riego, luz, etc.) y ofrece recomendaciones de cuidado. Que la respuesta sea a lo mucho en dos parrafos. Si la información es insuficiente para un diagnóstico preciso, sugiere qué más información se necesitaría.\n\n");
+
+        for (int i = 0; i < preguntas.size(); i++) {
+            Pregunta pregunta = preguntas.get(i);
+            String questionText = pregunta.getTexto();
+            String selectedAnswer = "No respondida"; // Default if no option is selected
+
+            for (Opcion opcion : pregunta.getOpciones()) {
+                if (opcion.getSeleccionada()) {
+                    selectedAnswer = opcion.getDescripcion();
+                    break;
+                }
+            }
+            promptBuilder.append("Pregunta ").append(i + 1).append(": ").append(questionText).append("\n");
+            promptBuilder.append("Respuesta: ").append(selectedAnswer).append("\n\n");
+        }
+
+        promptBuilder.append("Basado en estas respuestas, por favor, proporciona un análisis detallado del estado de la planta y recomendaciones específicas para su cuidado.");
+
+        return promptBuilder.toString();
+    }
+
+    private void sendAnswersToGemini() {
+        binding.btnNext.setEnabled(false); // Disable buttons
+        binding.btnPreview.setEnabled(false);
+
+        String userPrompt = collectAnswersForGemini();
+        Content content = new Content.Builder().addText(userPrompt).build();
+
+        Futures.addCallback(model.generateContent(content),
+                new FutureCallback<GenerateContentResponse>() {
+                    @Override
+                    public void onSuccess(GenerateContentResponse result) {
+                        requireActivity().runOnUiThread(() -> {// Hide loading indicator
+                            binding.btnNext.setEnabled(true);
+                            binding.btnPreview.setEnabled(true);
+
+                            String geminiResponse = result.getText();
+                            if (geminiResponse != null && !geminiResponse.isEmpty()) {
+                                // Display the Gemini response to the user
+                                // You'll need to create a new Fragment or Dialog to show this
+                                //dialog.dismiss();
+                                dialog2.dismiss();
+                                Toast.makeText(getContext(), "Listooo", Toast.LENGTH_SHORT).show();
+                                showGeminiResponseDialog(geminiResponse);
+                            } else {
+                                Toast.makeText(getContext(), "Gemini no pudo generar una respuesta.", Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        requireActivity().runOnUiThread(() -> {
+                            binding.btnNext.setEnabled(true);
+                            binding.btnPreview.setEnabled(true);
+                            Toast.makeText(getContext(), "Error al conectar con Gemini: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                            Log.d("ERROR", t.getMessage());
+                            t.printStackTrace(); // Log the error for debugging
+                        });
+                    }
+                }, executor);
+    }
+
+    private void showGeminiResponseDialog(String response) {
+        // Here, you'll want to display the 'response' to the user in a new UI.
+        // A simple way is to use an AlertDialog or navigate to a new Fragment.
+
+        // Example using AlertDialog:
+        new android.app.AlertDialog.Builder(getContext())
+                .setTitle("Análisis de la Planta")
+                .setMessage(response)
+                .setPositiveButton("Cerrar", (dialog, which) -> dialog.dismiss())
+                .show();
+
+        // If you want to navigate to a new Fragment (e.g., ResultFragment):
+        // ResultFragment resultFragment = ResultFragment.newInstance(response);
+        // requireActivity().getSupportFragmentManager().beginTransaction()
+        //         .replace(R.id.fragment_container, resultFragment) // Replace R.id.fragment_container with your actual container ID
+        //         .addToBackStack(null)
+        //         .commit();
+    }
+
+
 }
