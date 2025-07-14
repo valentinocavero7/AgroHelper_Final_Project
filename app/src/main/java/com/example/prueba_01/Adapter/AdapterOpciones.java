@@ -21,12 +21,17 @@ public class AdapterOpciones extends ArrayAdapter {
     private ItemPreguntaListBinding binding;
     private Context context;
     private ArrayList<Opcion> datos;
+    private opcionSeleccionadaListenter listenter;
 
+    public interface opcionSeleccionadaListenter {
+        void opcionSeleccionada(int pos);
+    }
 
-    public AdapterOpciones(@NonNull Context context, ArrayList<Opcion> datos) {
+    public AdapterOpciones(@NonNull Context context, ArrayList<Opcion> datos, opcionSeleccionadaListenter listenter) {
         super(context, 0, datos);
         this.context = context;
         this.datos = datos;
+        this.listenter = listenter;
     }
 
     @NonNull
@@ -53,6 +58,9 @@ public class AdapterOpciones extends ArrayAdapter {
             }
             opcion.setSeleccionada(true);
             notifyDataSetChanged();
+            if(listenter != null) {
+                listenter.opcionSeleccionada(position);
+            }
         });
 
         return convertView;
