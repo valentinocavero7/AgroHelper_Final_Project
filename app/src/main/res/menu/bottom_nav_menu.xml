@@ -7,10 +7,9 @@
         android:title="Inicio" />
 
     <item
-        android:id="@+id/navigation_home"
-        android:icon="@drawable/ic_home"
-
-        android:title="@string/title_home" />
+        android:id="@+id/consultafast"
+        android:icon="@drawable/ic_consultafast"
+        android:title="Consulta Rápida" />
 
 
     <item

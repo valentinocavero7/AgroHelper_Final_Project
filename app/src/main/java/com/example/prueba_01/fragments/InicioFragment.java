@@ -3,6 +3,7 @@ package com.example.prueba_01.fragments;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -19,16 +20,24 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.prueba_01.Adapter.SliderAdapter;
 import com.example.prueba_01.R;
+import com.example.prueba_01.modelo.CardModel;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class InicioFragment extends Fragment {
 
     public static InicioFragment newInstance() {
         return new InicioFragment();
     }
+    private RecyclerView rvSlider;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -44,6 +53,8 @@ public class InicioFragment extends Fragment {
         ImageView arrowLeft = view.findViewById(R.id.arrowLeft);
         ImageView arrowRight = view.findViewById(R.id.arrowRight);
         TextView btnText = view.findViewById(R.id.btnText);
+        rvSlider = view.findViewById(R.id.rvSlider);
+        setupCarrusel();
 
         animatedButton.setOnClickListener(v -> {
             // Expandir círculo
@@ -74,4 +85,36 @@ public class InicioFragment extends Fragment {
             circleAnim.start();
         });
     }
+
+    private void setupCarrusel() {
+        LinearLayoutManager layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
+        rvSlider.setLayoutManager(layoutManager);
+
+        List<CardModel> cards = new ArrayList<>();
+        cards.add(new CardModel(R.drawable.planta1));
+        cards.add(new CardModel(R.drawable.planta2));
+        cards.add(new CardModel(R.drawable.planta3));
+        cards.add(new CardModel(R.drawable.planta4));
+
+        SliderAdapter adapter = new SliderAdapter(cards);
+        rvSlider.setAdapter(adapter);
+
+        rvSlider.scrollToPosition(Integer.MAX_VALUE / 2); // inicio en el centro
+        autoScroll(rvSlider);
+    }
+
+    private void autoScroll(RecyclerView recyclerView) {
+        final Handler handler = new Handler();
+        final Runnable runnable = new Runnable() {
+            int position = Integer.MAX_VALUE / 2;
+
+            @Override
+            public void run() {
+                recyclerView.smoothScrollToPosition(position++);
+                handler.postDelayed(this, 1500);
+            }
+        };
+        handler.postDelayed(runnable, 1500);
+    }
+
 }
