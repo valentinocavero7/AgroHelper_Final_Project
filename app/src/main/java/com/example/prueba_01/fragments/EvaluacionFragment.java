@@ -1,12 +1,16 @@
 package com.example.prueba_01.fragments;
 
 import android.annotation.SuppressLint;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,6 +21,8 @@ import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import com.example.prueba_01.Adapter.AdapterOpciones;
+import com.example.prueba_01.Gemini.GeminiApi;
+import com.example.prueba_01.Gemini.GeminiCallBack;
 import com.example.prueba_01.dialogs.WaitingAnswerDialog;
 import com.example.prueba_01.dialogs.WaitingDialog;
 import com.example.prueba_01.modelo.Opcion;
@@ -24,6 +30,7 @@ import com.example.prueba_01.modelo.Pregunta;
 import com.example.prueba_01.R;
 import com.example.prueba_01.databinding.FragmentEvaluacionBinding;
 
+import com.google.ai.client.generativeai.BuildConfig;
 import com.google.ai.client.generativeai.GenerativeModel;
 import com.google.ai.client.generativeai.java.GenerativeModelFutures;
 import com.google.ai.client.generativeai.type.Content;
@@ -35,6 +42,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class EvaluacionFragment extends Fragment implements View.OnClickListener {
@@ -46,37 +55,17 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
     private int opcionSelected = -1;
     private WaitingDialog dialog;
     private WaitingAnswerDialog dialog2;
+    private GeminiApi gemini;
+    private String a = "";
 
     private GenerativeModelFutures model;
     private final Executor executor = Executors.newSingleThreadExecutor();
 
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    public EvaluacionFragment() {
-        // Required empty public constructor
-    }
-
-    public static EvaluacionFragment newInstance(String param1, String param2) {
-        EvaluacionFragment fragment = new EvaluacionFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
+    public EvaluacionFragment() {}
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
         String apiKey = "AIzaSyBn1YGNly3F8X_Jz_YYTm_pTY-kmq-6S68";
         GenerativeModel gm = new GenerativeModel(
                 /* modelName */ "gemini-2.5-flash-lite-preview-06-17",
@@ -85,6 +74,7 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
         model = GenerativeModelFutures.from(gm);
         dialog = new WaitingDialog();
         dialog2 = new WaitingAnswerDialog();
+        gemini = new GeminiApi();
     }
 
     @Override
@@ -100,6 +90,8 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
             Toast.makeText(getContext(), pos, Toast.LENGTH_SHORT).show();
         });
 
+        binding.btnNuevaEvaluacion.setOnClickListener(v -> reiniciarEvaluacion());
+
         binding.btnNext.setOnClickListener(v -> {
             if(numberPregunta < preguntas.size() - 1) {
                 if(opcionSelected != - 1 || PreguntaRespondida()) {
@@ -113,7 +105,6 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
                 }
             } else {
                 Toast.makeText(getContext(), "Evaluacion terminada", Toast.LENGTH_SHORT).show();
-                //dialog.show(getParentFragmentManager(), "");
                 dialog2.show(getParentFragmentManager(), "");
                 sendAnswersToGemini();
             }
@@ -308,9 +299,6 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
         return false;
     }
 
-
-
-
     @Override
     public void onClick(View view) {
 
@@ -323,7 +311,7 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
         for (int i = 0; i < preguntas.size(); i++) {
             Pregunta pregunta = preguntas.get(i);
             String questionText = pregunta.getTexto();
-            String selectedAnswer = "No respondida"; // Default if no option is selected
+            String selectedAnswer = "No respondida";
 
             for (Opcion opcion : pregunta.getOpciones()) {
                 if (opcion.getSeleccionada()) {
@@ -341,7 +329,7 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
     }
 
     private void sendAnswersToGemini() {
-        binding.btnNext.setEnabled(false); // Disable buttons
+        binding.btnNext.setEnabled(false);
         binding.btnPreview.setEnabled(false);
 
         String userPrompt = collectAnswersForGemini();
@@ -351,18 +339,15 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
                 new FutureCallback<GenerateContentResponse>() {
                     @Override
                     public void onSuccess(GenerateContentResponse result) {
-                        requireActivity().runOnUiThread(() -> {// Hide loading indicator
+                        requireActivity().runOnUiThread(() -> {
                             binding.btnNext.setEnabled(true);
                             binding.btnPreview.setEnabled(true);
 
                             String geminiResponse = result.getText();
                             if (geminiResponse != null && !geminiResponse.isEmpty()) {
-                                // Display the Gemini response to the user
-                                // You'll need to create a new Fragment or Dialog to show this
-                                //dialog.dismiss();
                                 dialog2.dismiss();
                                 Toast.makeText(getContext(), "Listooo", Toast.LENGTH_SHORT).show();
-                                showGeminiResponseDialog(geminiResponse);
+                                mostrarRespuestaGemini(geminiResponse);
                             } else {
                                 Toast.makeText(getContext(), "Gemini no pudo generar una respuesta.", Toast.LENGTH_LONG).show();
                             }
@@ -376,29 +361,52 @@ public class EvaluacionFragment extends Fragment implements View.OnClickListener
                             binding.btnPreview.setEnabled(true);
                             Toast.makeText(getContext(), "Error al conectar con Gemini: " + t.getMessage(), Toast.LENGTH_LONG).show();
                             Log.d("ERROR", t.getMessage());
-                            t.printStackTrace(); // Log the error for debugging
                         });
                     }
                 }, executor);
     }
 
-    private void showGeminiResponseDialog(String response) {
-        // Here, you'll want to display the 'response' to the user in a new UI.
-        // A simple way is to use an AlertDialog or navigate to a new Fragment.
+    private void mostrarRespuestaGemini(String respuesta) {
+        binding.pregunta.setText(parseMarkdownToBold(respuesta));
+        binding.titulo.setText("Resultado de la evaluación:");
+        binding.cntPreguntas.setVisibility(View.GONE);
+        binding.buttons.setVisibility(View.GONE);
+        binding.buttons2.setVisibility(View.VISIBLE);
+    }
 
-        // Example using AlertDialog:
-        new android.app.AlertDialog.Builder(getContext())
-                .setTitle("Análisis de la Planta")
-                .setMessage(response)
-                .setPositiveButton("Cerrar", (dialog, which) -> dialog.dismiss())
-                .show();
+    private void reiniciarEvaluacion() {
+        numberPregunta = 0;
+        opcionSelected = -1;
+        for (Pregunta pregunta : preguntas) {
+            for (Opcion opcion : pregunta.getOpciones()) {
+                opcion.setSeleccionada(false);
+            }
+        }
+        mostrarPregunta();
+        binding.cntPreguntas.setVisibility(View.VISIBLE);
+        binding.buttons.setVisibility(View.VISIBLE);
+        binding.buttons2.setVisibility(View.GONE);
+        binding.textBtnNext.setText("Siguiente");
+        binding.titulo.setText("Evaluación de la Planta");
+    }
 
-        // If you want to navigate to a new Fragment (e.g., ResultFragment):
-        // ResultFragment resultFragment = ResultFragment.newInstance(response);
-        // requireActivity().getSupportFragmentManager().beginTransaction()
-        //         .replace(R.id.fragment_container, resultFragment) // Replace R.id.fragment_container with your actual container ID
-        //         .addToBackStack(null)
-        //         .commit();
+    public static Spannable parseMarkdownToBold(String markdownText) {
+        SpannableString spannable = new SpannableString(markdownText);
+        Pattern pattern = Pattern.compile("\\*\\*(.*?)\\*\\*");
+        Matcher matcher = pattern.matcher(markdownText);
+
+        while (matcher.find()) {
+            int start = matcher.start();
+            int end = matcher.end();
+            spannable.setSpan(
+                    new StyleSpan(Typeface.BOLD),
+                    start + 2,
+                    end - 2,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+        }
+
+        return new SpannableString(spannable.toString().replaceAll("\\*\\*", ""));
     }
 
 

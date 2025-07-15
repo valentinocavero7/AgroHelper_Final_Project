@@ -12,6 +12,20 @@ class WaitingAnswerDialog : DialogFragment() {
     private var _binding : WaitingDialogBinding?= null
     private val binding get() = _binding!!
 
+    companion object {
+        private const val ARG_MESSAGE = "ARG_MESSAGE"
+
+        @JvmStatic
+        fun newInstance(message: String): WaitingAnswerDialog {
+            val dialog = WaitingAnswerDialog()
+            val args = Bundle()
+            args.putString(ARG_MESSAGE, message)
+            dialog.arguments = args
+            return dialog
+        }
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setStyle(STYLE_NO_FRAME, R.style.TransparentDialog)
@@ -23,6 +37,13 @@ class WaitingAnswerDialog : DialogFragment() {
         savedInstanceState: Bundle?
     ): View? {
         _binding = WaitingDialogBinding.inflate(layoutInflater, container, false)
+        val message = arguments?.getString(ARG_MESSAGE)
+        _binding?.titulo?.text = message ?: "Espera un momento..."
         return binding.root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }
