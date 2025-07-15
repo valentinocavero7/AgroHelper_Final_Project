@@ -72,6 +72,8 @@ public class ConsultafastFragment extends Fragment {
     private ActivityResultLauncher<Intent> imagePickerLauncher;
     private FragmentConsultafastBinding binding;
     private WaitingAnswerDialog dialog;
+    private static final String API_KEY = "AIzaSyBn1YGNly3F8X_Jz_YYTm_pTY-kmq-6S68";
+    private static final String MODEL = "gemini-2.5-flash-lite-preview-06-17";
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -166,21 +168,33 @@ public class ConsultafastFragment extends Fragment {
             String mensaje = ((EditText) view.findViewById(R.id.etMensaje)).getText().toString();
 
             // Validación simple
-            if (mensaje.isEmpty()) {
+            String s = "";
+            if (mensaje.isEmpty() && selectedImageUri == null) {
                 Toast.makeText(getContext(), "Completa todos los campos", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            if (!mensaje.isEmpty() && selectedImageUri == null) {
+                Toast.makeText(getContext(), "Solo mensaje", Toast.LENGTH_SHORT).show();
+                dialog = WaitingAnswerDialog.newInstance("Estamos analizando su consulta...");
+                dialog.show(getParentFragmentManager(), "WAITING_ANSWER_DIALOG");
+                realizarConsultaGemini(mensaje);
+            } else if (mensaje.isEmpty() && selectedImageUri != null) {
+                Toast.makeText(getContext(), "Solo imagen", Toast.LENGTH_SHORT).show();
+                dialog = WaitingAnswerDialog.newInstance("Estamos analizando la imagen...");
+                dialog.show(getParentFragmentManager(), "WAITING_ANSWER_DIALOG");
+                analizarSaludPlanta(selectedImageUri, "");
             } else {
-                Toast.makeText(getContext(), "Mensaje enviado correctamente", Toast.LENGTH_SHORT).show();
-                if(selectedImageUri != null) {
-                    dialog = WaitingAnswerDialog.newInstance("Estamos analizando la imagen...");
-                    dialog.show(getParentFragmentManager(), "WAITING_ANSWER_DIALOG");
-                    analizarSaludPlanta(selectedImageUri);
-                }
+                //Toast.makeText(getContext(), "ambos elementos", Toast.LENGTH_SHORT).show();
+                dialog = WaitingAnswerDialog.newInstance("Estamos analizando la imagen...");
+                dialog.show(getParentFragmentManager(), "WAITING_ANSWER_DIALOG");
+                analizarSaludPlanta(selectedImageUri, mensaje);
             }
 
         });
     }
 
-    private void analizarSaludPlanta(Uri imageUri) {
+    private void analizarSaludPlanta(Uri imageUri, String consulta) {
         try {
             Bitmap bitmap = MediaStore.Images.Media.getBitmap(requireContext().getContentResolver(), imageUri);
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -207,7 +221,7 @@ public class ConsultafastFragment extends Fragment {
                 @Override
                 public void onResponse(Call<Map<String, Object>> call, Response<Map<String, Object>> response) {
                     if (response.isSuccessful() && response.body() != null) {
-                        mostrarDiagnostico(response.body());
+                        mostrarDiagnostico(response.body(), consulta);
                     } else {
                         Toast.makeText(getContext(), "Error al analizar la imagen", Toast.LENGTH_SHORT).show();
                     }
@@ -225,7 +239,7 @@ public class ConsultafastFragment extends Fragment {
         }
     }
 
-    private void mostrarDiagnostico(Map<String, Object> data) {
+    private void mostrarDiagnostico(Map<String, Object> data, String consulta) {
         try {
             if (!data.containsKey("health_assessment") || data.get("health_assessment") == null) {
                 Toast.makeText(getContext(), "La API no devolvió resultados de evaluación de salud", Toast.LENGTH_LONG).show();
@@ -257,7 +271,7 @@ public class ConsultafastFragment extends Fragment {
                 resultado.append("🔍 Confianza: ").append(String.format("%.2f%%", score * 100)).append("\n");
             }
 
-            obtenerTratamientoDesdeGemini(resultado.toString());
+            obtenerTratamientoDesdeGemini(resultado.toString(), consulta);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -266,20 +280,47 @@ public class ConsultafastFragment extends Fragment {
         }
     }
 
-    private void obtenerTratamientoDesdeGemini(String enfermedadesLista) {
-        String apiKey = "AIzaSyBn1YGNly3F8X_Jz_YYTm_pTY-kmq-6S68";
+    private void realizarConsultaGemini(String consulta) {
+        GenerativeModel model = new GenerativeModel(MODEL, API_KEY);
+        GenerativeModelFutures modelFutures = GenerativeModelFutures.from(model);
+        Executor executor = Executors.newSingleThreadExecutor();
 
-        GenerativeModel model = new GenerativeModel(
-                "gemini-2.5-flash-lite-preview-06-17",
-                apiKey
-        );
+        String prompt = "Hola, un usario está realizando una consulta acerca de su planta." +
+                "Nos dijo lo siguiente: " + consulta + ". Por favor responde a su consulta de manera breve, puntual y sencilla."
+                + "En caso la pregunta no tenga que ver nada relacionado con una consulta de planta, simplemente dile que no eres apto de responder otras cosas.";
+        Content content = new Content.Builder().addText(prompt).build();
+
+        Futures.addCallback(modelFutures.generateContent(content), new FutureCallback<GenerateContentResponse>() {
+            @Override
+            public void onSuccess(GenerateContentResponse result) {
+                String respuesta = result.getText();
+                requireActivity().runOnUiThread(() -> {
+                    mostrarTratamientoSugerido(respuesta);
+                });
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                requireActivity().runOnUiThread(() -> {
+                    Toast.makeText(getContext(), "Error al consultar: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        }, executor);
+    }
+
+    private void obtenerTratamientoDesdeGemini(String enfermedadesLista, String consulta) {
+        GenerativeModel model = new GenerativeModel(MODEL, API_KEY);
 
         GenerativeModelFutures modelFutures = GenerativeModelFutures.from(model);
         Executor executor = Executors.newSingleThreadExecutor();
 
         String prompt = "Sugiere un tratamiento para las siguientes tres enfermedades más graves que se haya encontrado en el diagnostico:\n"
                 + enfermedadesLista + "\n\n"
-                + "Responde de manera breve y concisa, en una respuesta máxima de un parrafo. La respuesta debe ser en tono amigable";
+                + "Responde de manera breve y concisa, en una respuesta máxima de un parrafo. La respuesta debe ser en tono amigable.\n";
+        if (!consulta.isEmpty()) {
+            prompt += "Adicionalemente el usuario escribio este texto: " + consulta +
+                    " ten eso en cuenta también, y da una respuesta final con un diagnostisco y recomendacinoes para el usuario.";
+        }
 
         Content content = new Content.Builder().addText(prompt).build();
 
@@ -305,6 +346,7 @@ public class ConsultafastFragment extends Fragment {
         dialog.dismiss();
         binding.tvResultado.setText(parseMarkdownToBold(texto));
     }
+
 
     // esto es para pnoer en negrita los textos, pero creo que no funciona, pero al menos no sale : **Hola**
     public static Spannable parseMarkdownToBold(String markdownText) {
